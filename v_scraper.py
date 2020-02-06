@@ -1,5 +1,5 @@
 import argparse
-import bs4
+from bs4 import BeautifulSoup
 import os
 import requests
 import re
@@ -40,6 +40,7 @@ def clean_url(url):
     find_caps = re.search((r"[A-Z]+"), url)
     find_spaces = re.search((r"\s*"), url)
     find_http = re.search((r"^[http|https]://.*"), url)
+    find_dot_com = re.search((r".*\.com"), url)
     # If there are capital letters
     if find_caps:
         url = url.lower()
@@ -47,10 +48,9 @@ def clean_url(url):
     if find_spaces:
         url = re.sub(r"\s*",'',url)
     if not find_http:
-        print(url)
         url = 'https://' + url
-        print(url)
-    
+    if not find_dot_com:
+        url = url + '.com'
     return url
     
 
@@ -71,6 +71,19 @@ def find_site(url):
     if status != 200:
         print('Error reaching ' + url + '...\n Exiting...')
         sys.exit()
+    else:
+        return site
+
+def find_content(site):
+    '''
+    Finds content from the target site to get links and titles
+
+    '''
+    site = site.content
+    soup = BeautifulSoup(site, 'html.parser')
+    links = str(soup.findAll('a', href=True))
+    links = [re.search(r'(?<=href).*"', link) for link in links]
+    print(links)
     return
 
 
@@ -79,8 +92,8 @@ def main():
     args = parser.parse_args()
     args = vars(args)
     url = clean_url(args["url"])
-    find_site(url)
-
+    site = find_site(url)
+    find_content(site)
 
 if __name__ == '__main__':
     main()
